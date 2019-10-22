@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html>
+
+	<head>
+		<meta charset="utf-8" />
+		<title>websocket 测试</title>
+	</head>
+	<style>
+		.infoBox {
+			width: 100%;
+			height: 500px;
+			overflow-y: auto;
+		}
+		
+		#infoWindow dd {
+			border-top: 1px solid #000000;
+		}
+	</style>
+
+	<body>
+		<div id="container">
+			<p style="padding-left:40px;"> 
+				<button onClick="openSocket()">开启连接</button>
+				<button onClick="closeSocket()">关闭连接</button>
+				<button onClick="clearInfo()">清空</button>
+			    <input type="text"  id="sendText" />
+			    <button onClick="sendInfo()" >发送消息</button>
+			    
+			</p>
+			<div class="infoBox">
+				<dl id="infoWindow">
+				</dl>
+			</div>
+		</div>
+	</body>
+	<script type="text/javascript" src="js/jquery-3.2.1.min.js"></script>
+	<script>
+		var socket;
+		function initWebSocket(url) {
+			if(window.WebSocket) {
+				socket = new WebSocket(url);
+				//连接发生错误的回调方法
+				socket.onerror = function() {
+					console.log("WebSocket连接发生错误");
+					setTimeout(function() {
+						initWebSocket(url);
+					}, 5000);
+				};
+
+				//连接成功建立的回调方法
+				socket.onopen = function() {
+					console.log("WebSocket连接成功")
+				};
+
+				//接收到后台推送的消息后的回调方法
+				socket.onmessage = function(event) {
+					console.log('接收消息,消息如下');
+					console.log(event);
+
+					//以下仅做效果，与webSocket无头
+					var data = event.data;
+					var dd_html = "<dd><h5>接收消息如下</h5><p>" + data + "</p></dd>"
+					$("#infoWindow").append(dd_html);
+					var box_height = $("#infoWindow").innerHeight();
+					$(".infoBox").animate({
+						scrollTop: box_height
+					}, 100);
+				};
+
+				//连接关闭的回调方法
+				socket.onclose = function() {
+					console.log("WebSocket连接关闭");
+				};
+
+				//监听窗口关闭事件，当窗口关闭时，主动去关闭websocket连接，防止连接还没断开就关闭窗口，server端会抛异常。
+				window.onbeforeunload = function() {
+					closeSocket();
+				}
+			}else{
+				console.log('不支持WebSocket');
+			}
+		}
+
+		//建立websocket连接
+		function openSocket() {
+			initWebSocket('ws://59.110.63.115:201/websocket/830');
+		}
+
+		//关闭websocket连接
+		function closeSocket() {
+			if(socket) {
+				socket.close();
+			}
+		}
+		
+		//websocket 发送消息
+		function sendInfo(){
+			var info = {
+				text:$("#sendText").val()
+			};
+			/*
+			 *WebSocket.readyState返回值
+			 *0:正在建立连接
+			 *1:已经建立连接
+			 *2:正在关闭连接
+			 *3:已经关闭连接
+			 * 
+			 */
+			if(socket && socket.readyState == 1){
+				socket.send(JSON.stringify(info));
+			}else{
+				alert('尚未连接');
+			}
+			
+		}
+		
+		//清空消息
+		function clearInfo(){
+		   $("#infoWindow").html('');
+		}
+
+	</script>
+
+</html>
